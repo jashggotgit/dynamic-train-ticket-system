@@ -5,7 +5,6 @@
 // ============================================================================
 
 const url = require('url');
-const path = require('path');
 const dbEngine = require('../db_engine');
 
 function getRequestBody(req) {
@@ -37,11 +36,45 @@ function sendJSON(res, statusCode, data) {
     res.end(JSON.stringify(data));
 }
 
+// Robust route extractor supporting Vercel rewrites, catch-all [...route], and direct queries
+function getRoute(req) {
+    const parsedUrl = url.parse(req.url, true);
+
+    // 1. From Vercel catch-all param [...route]
+    if (req.query && req.query.route) {
+        if (Array.isArray(req.query.route)) {
+            return '/' + req.query.route.join('/');
+        }
+        return '/' + req.query.route.replace(/^\/+/, '');
+    }
+
+    // 2. From rewrite query ?route=...
+    if (parsedUrl.query && parsedUrl.query.route) {
+        return '/' + parsedUrl.query.route.replace(/^\/+/, '');
+    }
+
+    // 3. From Vercel headers
+    const matched = req.headers['x-matched-path'] || req.headers['x-invoke-path'];
+    if (matched && matched.includes('/api/')) {
+        return matched.substring(matched.indexOf('/api/') + 4);
+    }
+
+    // 4. From pathname
+    let p = parsedUrl.pathname || '';
+    if (p.startsWith('/api')) {
+        p = p.substring(4);
+    }
+    if (p.startsWith('/index.js') || p.startsWith('/index')) {
+        p = p.replace(/^\/index(\.js)?/, '');
+    }
+    return p.startsWith('/') ? p : '/' + p;
+}
+
 module.exports = async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
-    const pathname = parsedUrl.pathname;
-    const query = parsedUrl.query;
+    const query = { ...parsedUrl.query, ...(req.query || {}) };
     const method = req.method.toUpperCase();
+    const route = getRoute(req).toLowerCase().replace(/\/+$/, '') || '/';
 
     // CORS Pre-flight
     if (method === 'OPTIONS') {
@@ -54,7 +87,7 @@ module.exports = async (req, res) => {
 
     try {
         // 1. Health check & DB mode
-        if ((pathname === '/api/health' || pathname === '/health') && method === 'GET') {
+        if ((route === '/' || route === '/health') && method === 'GET') {
             return sendJSON(res, 200, {
                 status: 'ONLINE',
                 platform: 'VERCEL_SERVERLESS',
@@ -64,110 +97,110 @@ module.exports = async (req, res) => {
         }
 
         // 2. Trains
-        if ((pathname === '/api/trains' || pathname === '/trains') && method === 'GET') {
+        if (route === '/trains' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.getTrains());
         }
 
         // 3. Stations
-        if ((pathname === '/api/stations' || pathname === '/stations') && method === 'GET') {
+        if (route === '/stations' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.tables.Station);
         }
 
         // 4. Coach Classes
-        if ((pathname === '/api/coach-classes' || pathname === '/coach-classes') && method === 'GET') {
+        if (route === '/coach-classes' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.tables.Coach_Class);
         }
 
         // 5. Seats for a train
-        if ((pathname === '/api/seats' || pathname === '/seats') && method === 'GET') {
+        if (route === '/seats' && method === 'GET') {
             const trainId = query.train_id || 101;
             return sendJSON(res, 200, dbEngine.getSeatsForTrain(trainId));
         }
 
         // 6. Promotions
-        if ((pathname === '/api/promo-codes' || pathname === '/promo-codes') && method === 'GET') {
+        if (route === '/promo-codes' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.tables.Promotion_Offer);
         }
 
-        if ((pathname === '/api/promo-codes' || pathname === '/promo-codes') && method === 'POST') {
+        if (route === '/promo-codes' && method === 'POST') {
             const body = await getRequestBody(req);
             const offer = dbEngine.addPromotionOffer(body);
             return sendJSON(res, 201, offer);
         }
 
-        if ((pathname === '/api/promo-codes' || pathname === '/promo-codes') && method === 'DELETE') {
+        if (route === '/promo-codes' && method === 'DELETE') {
             const body = await getRequestBody(req);
             const success = dbEngine.deletePromotionOffer(body.promo_code);
             return sendJSON(res, 200, { success });
         }
 
         // 7. Dynamic Fare Calculator (FN_CALCULATE_FARE)
-        if ((pathname === '/api/fare/calculate' || pathname === '/fare/calculate') && method === 'POST') {
+        if (route === '/fare/calculate' && method === 'POST') {
             const body = await getRequestBody(req);
             const fareData = dbEngine.calculateFare(body.train_id, body.class_id, body.promo_code);
             return sendJSON(res, 200, fareData);
         }
 
         // 8. Book Ticket (STORED PROCEDURE BOOK_TICKET)
-        if ((pathname === '/api/tickets/book' || pathname === '/tickets/book') && method === 'POST') {
+        if (route === '/tickets/book' && method === 'POST') {
             const body = await getRequestBody(req);
             const result = await dbEngine.bookTicket(body);
             return sendJSON(res, 200, result);
         }
 
         // 9. Cancel Ticket (STORED PROCEDURE CANCEL_TICKET + TRIGGER TRG_TICKET_CANCEL_WAITLIST)
-        if ((pathname === '/api/tickets/cancel' || pathname === '/tickets/cancel') && method === 'POST') {
+        if (route === '/tickets/cancel' && method === 'POST') {
             const body = await getRequestBody(req);
             const result = await dbEngine.cancelTicket(body.ticket_id);
             return sendJSON(res, 200, result);
         }
 
         // 10. Tickets List
-        if ((pathname === '/api/tickets' || pathname === '/tickets') && method === 'GET') {
+        if (route === '/tickets' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.getTickets());
         }
 
         // 11. Waitlist Logs
-        if ((pathname === '/api/waitlist' || pathname === '/waitlist') && method === 'GET') {
+        if (route === '/waitlist' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.getWaitlistLogs());
         }
 
         // 12. Dashboard Real-Time Statistics
-        if ((pathname === '/api/dashboard/stats' || pathname === '/dashboard/stats') && method === 'GET') {
+        if (route === '/dashboard/stats' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.getDashboardSummary());
         }
 
         // 13. Maintenance Logs
-        if ((pathname === '/api/maintenance' || pathname === '/maintenance') && method === 'GET') {
+        if (route === '/maintenance' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.getMaintenanceLogs());
         }
 
-        if ((pathname === '/api/maintenance' || pathname === '/maintenance') && method === 'POST') {
+        if (route === '/maintenance' && method === 'POST') {
             const body = await getRequestBody(req);
             const newLog = dbEngine.reportMaintenance(body);
             return sendJSON(res, 201, newLog);
         }
 
-        if ((pathname === '/api/maintenance/update' || pathname === '/maintenance/update') && method === 'POST') {
+        if (route === '/maintenance/update' && method === 'POST') {
             const body = await getRequestBody(req);
             const updated = dbEngine.updateMaintenanceStatus(body.log_id, body.status);
             return sendJSON(res, 200, updated);
         }
 
         // 14. Real-Time Trigger Activity Logs
-        if ((pathname === '/api/trigger-logs' || pathname === '/trigger-logs') && method === 'GET') {
+        if (route === '/trigger-logs' && method === 'GET') {
             return sendJSON(res, 200, dbEngine.triggerLog);
         }
 
         // 15. Raw Relational Table Explorer
-        if ((pathname === '/api/db/export' || pathname === '/db/export') && method === 'GET') {
+        if (route === '/db/export' && method === 'GET') {
             return sendJSON(res, 200, {
                 tables: dbEngine.tables,
                 sequences: dbEngine.sequences
             });
         }
 
-        return sendJSON(res, 404, { error: `Endpoint ${pathname} not found.` });
+        return sendJSON(res, 404, { error: `Endpoint ${route} not found. (Original URL: ${req.url})` });
 
     } catch (err) {
         console.error('[VERCEL API ERROR]', err);
