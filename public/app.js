@@ -6,11 +6,37 @@
 
 const API_BASE = '/api';
 
+// Default Foundational Datasets for Zero-Latency Instant Render
+const DEFAULT_TRAINS = [
+    { Train_ID: 101, Train_Name: 'Vande Bharat Express', Total_Capacity: 8, Type: 'Superfast Bullet', availableSeats: 8, bookedSeats: 0, waitlistCount: 0 },
+    { Train_ID: 102, Train_Name: 'Rajdhani Express', Total_Capacity: 12, Type: 'Express Luxury', availableSeats: 12, bookedSeats: 0, waitlistCount: 0 },
+    { Train_ID: 103, Train_Name: 'Tejas Hyperliner', Total_Capacity: 6, Type: 'Semi-High Speed', availableSeats: 6, bookedSeats: 0, waitlistCount: 0 }
+];
+
+const DEFAULT_CLASSES = [
+    { Class_ID: 1, Class_Name: '1A - AC First Class', Base_Fare_Multiplier: 3.50 },
+    { Class_ID: 2, Class_Name: '2A - AC 2-Tier', Base_Fare_Multiplier: 2.20 },
+    { Class_ID: 3, Class_Name: '3A - AC 3-Tier', Base_Fare_Multiplier: 1.50 },
+    { Class_ID: 4, Class_Name: 'CC - AC Chair Car', Base_Fare_Multiplier: 1.20 },
+    { Class_ID: 5, Class_Name: 'SL - Sleeper Class', Base_Fare_Multiplier: 1.00 }
+];
+
+const DEFAULT_SEATS_101 = [
+    { Seat_No: 1001, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-01', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1002, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-02', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1003, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-03', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1004, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-04', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1005, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-05', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1006, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-06', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1007, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-07', Status: 'AVAILABLE', className: 'CC - AC Chair Car' },
+    { Seat_No: 1008, Train_ID: 101, Class_ID: 4, Seat_Code: 'CC-08', Status: 'AVAILABLE', className: 'CC - AC Chair Car' }
+];
+
 // Global Client State
 const state = {
-    trains: [],
-    classes: [],
-    seats: [],
+    trains: [...DEFAULT_TRAINS],
+    classes: [...DEFAULT_CLASSES],
+    seats: [...DEFAULT_SEATS_101],
     selectedTrainId: 101,
     selectedClassId: 4,
     selectedSeatNo: null,
@@ -25,11 +51,17 @@ const state = {
 // =============================================================================
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('[CYBERAIL] Initializing Dynamic Transit Engine...');
-    await checkSystemHealth();
+
+    // 1. Render immediate baseline UI (zero stuck loaders!)
+    populateTrainAndClassDropdowns();
+    renderSeatMap();
+    updateFareCalculation();
+
+    // 2. Fetch live telemetry & dynamic database state asynchronously
+    checkSystemHealth();
     await loadInitialData();
-    await refreshSeatsAndMetrics();
-    await updateFareCalculation();
-    await refreshAdminDashboard();
+    await refreshSeatsAndMetrics(false);
+    refreshAdminDashboard();
 
     // Auto-refresh telemetry every 6 seconds
     setInterval(() => {
@@ -40,6 +72,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, 6000);
 });
+
+function populateTrainAndClassDropdowns() {
+    const trainSelect = document.getElementById('train-select');
+    if (trainSelect) {
+        trainSelect.innerHTML = state.trains.map(t => `
+            <option value="${t.Train_ID}" ${t.Train_ID === state.selectedTrainId ? 'selected' : ''}>
+                ${t.Train_ID} - ${t.Train_Name} (${t.Type})
+            </option>
+        `).join('');
+    }
+
+    const classSelect = document.getElementById('class-select');
+    if (classSelect) {
+        classSelect.innerHTML = state.classes.map(c => `
+            <option value="${c.Class_ID}" ${c.Class_ID === state.selectedClassId ? 'selected' : ''}>
+                ${c.Class_Name} (x${(c.Base_Fare_Multiplier || 1).toFixed(2)})
+            </option>
+        `).join('');
+    }
+}
 
 // View Navigation Switcher
 function switchView(viewName) {
@@ -72,62 +124,32 @@ async function checkSystemHealth() {
     }
 }
 
-// Load Foundational Trains & Classes
+// Load Foundational Trains & Classes with Real-time Sync
 async function loadInitialData() {
     try {
         const [trainsRes, classesRes] = await Promise.all([
-            fetch(`${API_BASE}/trains`),
-            fetch(`${API_BASE}/coach-classes`)
+            fetch(`${API_BASE}/trains`).catch(err => { console.warn('/trains fetch failed', err); return null; }),
+            fetch(`${API_BASE}/coach-classes`).catch(err => { console.warn('/coach-classes fetch failed', err); return null; })
         ]);
 
-        const trainsData = await trainsRes.json();
-        const classesData = await classesRes.json();
-
-        if (Array.isArray(trainsData)) {
-            state.trains = trainsData;
-        } else {
-            console.warn('Backend returned non-array for trains, using foundational catalog:', trainsData);
-            state.trains = [
-                { Train_ID: 101, Train_Name: 'Vande Bharat Express', Total_Capacity: 8, Type: 'Superfast Bullet', availableSeats: 8, bookedSeats: 0, waitlistCount: 0 },
-                { Train_ID: 102, Train_Name: 'Rajdhani Express', Total_Capacity: 12, Type: 'Express Luxury', availableSeats: 12, bookedSeats: 0, waitlistCount: 0 },
-                { Train_ID: 103, Train_Name: 'Tejas Hyperliner', Total_Capacity: 6, Type: 'Semi-High Speed', availableSeats: 6, bookedSeats: 0, waitlistCount: 0 }
-            ];
+        if (trainsRes && trainsRes.ok) {
+            const trainsData = await trainsRes.json().catch(() => null);
+            if (Array.isArray(trainsData) && trainsData.length > 0) {
+                state.trains = trainsData;
+            }
         }
 
-        if (Array.isArray(classesData)) {
-            state.classes = classesData;
-        } else {
-            console.warn('Backend returned non-array for coach classes, using foundational catalog:', classesData);
-            state.classes = [
-                { Class_ID: 1, Class_Name: '1A - AC First Class', Base_Fare_Multiplier: 3.50 },
-                { Class_ID: 2, Class_Name: '2A - AC 2-Tier', Base_Fare_Multiplier: 2.20 },
-                { Class_ID: 3, Class_Name: '3A - AC 3-Tier', Base_Fare_Multiplier: 1.50 },
-                { Class_ID: 4, Class_Name: 'CC - AC Chair Car', Base_Fare_Multiplier: 1.20 },
-                { Class_ID: 5, Class_Name: 'SL - Sleeper Class', Base_Fare_Multiplier: 1.00 }
-            ];
+        if (classesRes && classesRes.ok) {
+            const classesData = await classesRes.json().catch(() => null);
+            if (Array.isArray(classesData) && classesData.length > 0) {
+                state.classes = classesData;
+            }
         }
 
-        // Populate Train Selector
-        const trainSelect = document.getElementById('train-select');
-        trainSelect.innerHTML = state.trains.map(t => `
-            <option value="${t.Train_ID}" ${t.Train_ID === 101 ? 'selected' : ''}>
-                ${t.Train_ID} - ${t.Train_Name} (${t.Type})
-            </option>
-        `).join('');
-
-        // Populate Coach Class Selector
-        const classSelect = document.getElementById('class-select');
-        classSelect.innerHTML = state.classes.map(c => `
-            <option value="${c.Class_ID}" ${c.Class_ID === 4 ? 'selected' : ''}>
-                ${c.Class_Name} (x${(c.Base_Fare_Multiplier || 1).toFixed(2)})
-            </option>
-        `).join('');
-
-        state.selectedTrainId = Number(trainSelect.value) || 101;
-        state.selectedClassId = Number(classSelect.value) || 4;
+        populateTrainAndClassDropdowns();
 
     } catch (err) {
-        console.error('Initial data load error:', err);
+        console.warn('Initial data load background sync:', err);
     }
 }
 

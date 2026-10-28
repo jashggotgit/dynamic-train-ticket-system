@@ -68,15 +68,20 @@
                     <div class="control-group">
                         <label for="train-select">CHOOSE EXPRESS TRAIN</label>
                         <select id="train-select" class="cyber-select" onchange="onTrainChange()">
-                            <!-- Populated dynamically via API -->
-                            <option value="101">Loading Trains...</option>
+                            <option value="101" selected>101 - Vande Bharat Express (Superfast Bullet)</option>
+                            <option value="102">102 - Rajdhani Express (Express Luxury)</option>
+                            <option value="103">103 - Tejas Hyperliner (Semi-High Speed)</option>
                         </select>
                     </div>
 
                     <div class="control-group">
                         <label for="class-select">COACH TRAVEL CLASS</label>
                         <select id="class-select" class="cyber-select" onchange="onClassChange()">
-                            <!-- Populated dynamically via API -->
+                            <option value="1">1A - AC First Class (x3.50)</option>
+                            <option value="2">2A - AC 2-Tier (x2.20)</option>
+                            <option value="3">3A - AC 3-Tier (x1.50)</option>
+                            <option value="4" selected>CC - AC Chair Car (x1.20)</option>
+                            <option value="5">SL - Sleeper Class (x1.00)</option>
                         </select>
                     </div>
 
@@ -116,8 +121,38 @@
                     <div class="train-coach-chassis">
                         <div class="coach-engine-nose">FRONT CAB // LOCOMOTIVE</div>
                         <div id="seats-grid" class="seats-matrix">
-                            <!-- Populated dynamically with interactive seat elements -->
-                            <div class="loader-text">Loading Real-Time Seat Status...</div>
+                            <div class="seat-element available" onclick="selectSeat(1001)" title="Seat #1001 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-01</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1002)" title="Seat #1002 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-02</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1003)" title="Seat #1003 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-03</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1004)" title="Seat #1004 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-04</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1005)" title="Seat #1005 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-05</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1006)" title="Seat #1006 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-06</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1007)" title="Seat #1007 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-07</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
+                            <div class="seat-element available" onclick="selectSeat(1008)" title="Seat #1008 - CC - AC Chair Car (AVAILABLE)">
+                                <span class="seat-code">CC-08</span>
+                                <span class="seat-class-tag">AVAILABLE</span>
+                            </div>
                         </div>
                         <div class="coach-engine-rear">COACH END // BUFFER</div>
                     </div>
