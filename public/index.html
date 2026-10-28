@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBERAIL // Dynamic Oracle Train Ticket & Waitlist System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="cyber-theme">
+    <!-- Ambient glowing backgrounds -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Navigation Header -->
+    <header class="cyber-header">
+        <div class="header-container">
+            <div class="brand-section">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>
+                    <span class="logo-pulse"></span>
+                </div>
+                <div class="brand-text">
+                    <h1 class="brand-title">CYBERAIL<span class="brand-accent">.ORACLE</span></h1>
+                    <span class="brand-sub">DYNAMIC PL/SQL TICKET & WAITLIST ENGINE</span>
+                </div>
+            </div>
+
+            <!-- View Switcher -->
+            <nav class="view-nav">
+                <button id="nav-passenger-btn" class="nav-tab active" onclick="switchView('passenger')">
+                    <span class="nav-icon">🎫</span> PASSENGER PORTAL
+                </button>
+                <button id="nav-admin-btn" class="nav-tab" onclick="switchView('admin')">
+                    <span class="nav-icon">⚙️</span> ADMIN CONTROL CENTER
+                    <span id="waitlist-badge-indicator" class="pulse-indicator">0</span>
+                </button>
+            </nav>
+
+            <!-- System Telemetry Status -->
+            <div class="system-status">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="telemetry-mode" class="status-text">PL/SQL ENGINE ACTIVE</span>
+                </div>
+                <div class="status-chip">ORACLE 11g/19c READY</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- ================================================================= -->
+        <!-- VIEW 1: PASSENGER BOOKING PORTAL                                  -->
+        <!-- ================================================================= -->
+        <section id="view-passenger" class="portal-view active">
+            <!-- Hero Search & Selection Suite -->
+            <div class="glass-card hero-suite">
+                <div class="card-header">
+                    <div class="header-pill">01 // SELECT JOURNEY & TRAIN</div>
+                    <h2>Quantum Route & Train Selector</h2>
+                    <p class="section-desc">Select an express hyperliner and monitor real-time seat availability vs waitlist threshold.</p>
+                </div>
+
+                <div class="train-selector-grid">
+                    <div class="control-group">
+                        <label for="train-select">CHOOSE EXPRESS TRAIN</label>
+                        <select id="train-select" class="cyber-select" onchange="onTrainChange()">
+                            <!-- Populated dynamically via API -->
+                            <option value="101">Loading Trains...</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="class-select">COACH TRAVEL CLASS</label>
+                        <select id="class-select" class="cyber-select" onchange="onClassChange()">
+                            <!-- Populated dynamically via API -->
+                        </select>
+                    </div>
+
+                    <div class="train-metrics-badge">
+                        <div class="metric-block">
+                            <span class="metric-label">TOTAL CAPACITY</span>
+                            <span id="metric-capacity" class="metric-val">8 SEATS</span>
+                        </div>
+                        <div class="metric-block">
+                            <span class="metric-label">AVAILABLE SEATS</span>
+                            <span id="metric-available" class="metric-val val-green">8</span>
+                        </div>
+                        <div class="metric-block">
+                            <span class="metric-label">ACTIVE WAITLIST</span>
+                            <span id="metric-waitlist" class="metric-val val-amber">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-Column Interactive Workspace: Seat Map + Booking Form -->
+            <div class="portal-grid">
+                <!-- Left Column: Interactive Seat Map Visualizer -->
+                <div class="glass-card seat-map-card">
+                    <div class="card-header flex-between">
+                        <div>
+                            <div class="header-pill">02 // INTERACTIVE COACH LAYOUT</div>
+                            <h3>Live Physical Seat Matrix</h3>
+                        </div>
+                        <div class="seat-legend">
+                            <span class="legend-item"><span class="legend-box available"></span> Available</span>
+                            <span class="legend-item"><span class="legend-box booked"></span> Booked</span>
+                            <span class="legend-item"><span class="legend-box selected"></span> Selected</span>
+                        </div>
+                    </div>
+
+                    <div class="train-coach-chassis">
+                        <div class="coach-engine-nose">FRONT CAB // LOCOMOTIVE</div>
+                        <div id="seats-grid" class="seats-matrix">
+                            <!-- Populated dynamically with interactive seat elements -->
+                            <div class="loader-text">Loading Real-Time Seat Status...</div>
+                        </div>
+                        <div class="coach-engine-rear">COACH END // BUFFER</div>
+                    </div>
+
+                    <div class="seat-map-footer">
+                        <div class="info-alert">
+                            <span class="info-icon">ℹ️</span>
+                            <span><strong>PL/SQL Logic:</strong> Seats are dynamically locked via <code>FOR UPDATE</code>. If all physical seats are booked, subsequent bookings automatically trigger the <strong>Waitlist Engine</strong>.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Passenger Checkout & Dynamic Fare Calculator -->
+                <div class="glass-card checkout-card">
+                    <div class="card-header">
+                        <div class="header-pill">03 // PASSENGER & FARE ENGINE</div>
+                        <h3>Booking & Ticket Generation</h3>
+                    </div>
+
+                    <form id="booking-form" onsubmit="handleBookTicket(event)">
+                        <div class="form-grid">
+                            <div class="input-field">
+                                <label for="passenger-name">PASSENGER NAME *</label>
+                                <input type="text" id="passenger-name" placeholder="e.g. Maya Chen" required value="Devansh Rathi">
+                            </div>
+
+                            <div class="input-field">
+                                <label for="passenger-phone">MOBILE PHONE *</label>
+                                <input type="tel" id="passenger-phone" placeholder="+91-9876543210" required value="+91-9876501001">
+                            </div>
+
+                            <div class="input-field">
+                                <label for="passenger-email">EMAIL ADDRESS</label>
+                                <input type="email" id="passenger-email" placeholder="devansh@example.com" value="devansh@university.edu">
+                            </div>
+
+                            <div class="input-field-inline">
+                                <div class="input-field">
+                                    <label for="passenger-age">AGE *</label>
+                                    <input type="number" id="passenger-age" min="1" max="120" value="21" required>
+                                </div>
+                                <div class="input-field">
+                                    <label for="payment-method">PAYMENT GATEWAY</label>
+                                    <select id="payment-method" class="cyber-select">
+                                        <option value="UPI">UPI Instant Pay</option>
+                                        <option value="CREDIT_CARD">Credit / Debit Card</option>
+                                        <option value="NET_BANKING">Net Banking</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Promo Code Engine -->
+                            <div class="input-field promo-field">
+                                <label for="promo-code">VOUCHER / PROMO CODE</label>
+                                <div class="promo-input-wrap">
+                                    <input type="text" id="promo-code" placeholder="e.g. STUDENT15, FESTIVE25" uppercase>
+                                    <button type="button" class="cyber-btn-outline" onclick="applyPromoCode()">APPLY</button>
+                                </div>
+                                <div class="promo-chips">
+                                    <span class="chip" onclick="setPromo('STUDENT15')">⚡ STUDENT15 (15% OFF)</span>
+                                    <span class="chip" onclick="setPromo('FESTIVE25')">🎉 FESTIVE25 (25% OFF)</span>
+                                    <span class="chip" onclick="setPromo('CYBER50')">🔥 CYBER50 (50% OFF)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Fare Calculator Display -->
+                        <div class="fare-receipt-box">
+                            <div class="fare-line">
+                                <span>Base Train Fare:</span>
+                                <span id="fare-base">₹500.00</span>
+                            </div>
+                            <div class="fare-line">
+                                <span>Class Multiplier:</span>
+                                <span id="fare-multiplier">x 1.20</span>
+                            </div>
+                            <div class="fare-line fare-discount" id="fare-discount-row" style="display: none;">
+                                <span>Promo Discount:</span>
+                                <span id="fare-discount">- ₹0.00</span>
+                            </div>
+                            <div class="fare-divider"></div>
+                            <div class="fare-line fare-total">
+                                <span>TOTAL AMOUNT:</span>
+                                <span id="fare-total">₹600.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Submit Action Button -->
+                        <button type="submit" id="book-btn" class="cyber-btn-primary glow-btn">
+                            <span class="btn-text">CONFIRM & BOOK TICKET [CALL PL/SQL]</span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- VIEW 2: ADMIN CONTROL CENTER                                      -->
+        <!-- ================================================================= -->
+        <section id="view-admin" class="portal-view">
+            <!-- KPI Summary Cards -->
+            <div class="kpi-grid">
+                <div class="glass-card kpi-card">
+                    <div class="kpi-icon icon-blue">📊</div>
+                    <div class="kpi-content">
+                        <span class="kpi-title">TOTAL RESERVATIONS</span>
+                        <h3 id="stat-reservations" class="kpi-number">0</h3>
+                        <span class="kpi-trend trend-up">Active Transactions</span>
+                    </div>
+                </div>
+
+                <div class="glass-card kpi-card">
+                    <div class="kpi-icon icon-amber">⏳</div>
+                    <div class="kpi-content">
+                        <span class="kpi-title">ACTIVE WAITLIST QUEUE</span>
+                        <h3 id="stat-waitlist" class="kpi-number text-amber">0</h3>
+                        <span class="kpi-trend trend-warning">Awaiting Cancellations</span>
+                    </div>
+                </div>
+
+                <div class="glass-card kpi-card">
+                    <div class="kpi-icon icon-green">💳</div>
+                    <div class="kpi-content">
+                        <span class="kpi-title">TOTAL REVENUE</span>
+                        <h3 id="stat-revenue" class="kpi-number text-green">₹0</h3>
+                        <span class="kpi-trend trend-up">Captured Payments</span>
+                    </div>
+                </div>
+
+                <div class="glass-card kpi-card">
+                    <div class="kpi-icon icon-purple">⚡</div>
+                    <div class="kpi-content">
+                        <span class="kpi-title">CAPACITY UTILIZATION</span>
+                        <h3 id="stat-utilization" class="kpi-number">0%</h3>
+                        <span class="kpi-trend trend-neutral">Fleet Load Factor</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Glowing Dynamic Waitlist Alert Banner -->
+            <div id="waitlist-alert-banner" class="waitlist-alert-glow" style="display: none;">
+                <span class="alert-pulse-dot"></span>
+                <span id="waitlist-alert-text">⚠️ <strong>ACTIVE WAITLIST ALERT:</strong> Passengers in queue! The autonomous PL/SQL trigger is primed to shift the queue on next cancellation.</span>
+            </div>
+
+            <!-- Live Trigger & Event Console -->
+            <div class="glass-card trigger-console-card">
+                <div class="card-header flex-between">
+                    <div>
+                        <div class="header-pill">PL/SQL TELEMETRY // REAL-TIME EXECUTION AUDIT</div>
+                        <h3>Trigger & Procedure Execution Feed</h3>
+                    </div>
+                    <button class="cyber-btn-outline" onclick="loadTriggerLogs()">REFRESH FEED</button>
+                </div>
+                <div id="trigger-log-container" class="terminal-box">
+                    <div class="terminal-line"><span class="term-time">[SYSTEM READY]</span> Listening for PL/SQL BOOK_TICKET, CANCEL_TICKET, and TRG_TICKET_CANCEL_WAITLIST events...</div>
+                </div>
+            </div>
+
+            <!-- Data Tables Section: Waitlist Log + Confirmed Tickets + Maintenance -->
+            <div class="admin-tables-grid">
+                <!-- Table 1: Real-Time Waitlist Queue (Watch Trigger Shift live!) -->
+                <div class="glass-card data-table-card">
+                    <div class="card-header flex-between">
+                        <div>
+                            <div class="header-pill">ENTITY 09 // WAITLIST_LOG</div>
+                            <h3>Live Waitlist Queue</h3>
+                        </div>
+                        <span id="waitlist-count-chip" class="status-chip chip-amber">0 Waiting</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>QUEUE #</th>
+                                    <th>PNR NO</th>
+                                    <th>TRAIN</th>
+                                    <th>PASSENGER</th>
+                                    <th>PHONE</th>
+                                    <th>TIMESTAMP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="waitlist-table-body">
+                                <tr><td colspan="6" class="text-center">No passengers currently waitlisted.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Table 2: Confirmed Tickets (With 1-Click Trigger Test) -->
+                <div class="glass-card data-table-card">
+                    <div class="card-header flex-between">
+                        <div>
+                            <div class="header-pill">ENTITY 08 // TICKET</div>
+                            <h3>Confirmed Tickets & Trigger Testing Console</h3>
+                        </div>
+                        <span class="help-hint">Click "CANCEL" to test TRG_TICKET_CANCEL_WAITLIST live!</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>TICKET ID</th>
+                                    <th>PNR</th>
+                                    <th>TRAIN</th>
+                                    <th>SEAT NO</th>
+                                    <th>PASSENGER</th>
+                                    <th>ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tickets-table-body">
+                                <tr><td colspan="6" class="text-center">No confirmed tickets yet. Book one from the portal!</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Section: Train Maintenance & Promo Codes -->
+            <div class="admin-tables-grid secondary-grid">
+                <!-- Train Maintenance Logs -->
+                <div class="glass-card data-table-card">
+                    <div class="card-header flex-between">
+                        <div>
+                            <div class="header-pill">ENTITY 14 // TRAIN_MAINTENANCE</div>
+                            <h3>Maintenance & Safety Logs</h3>
+                        </div>
+                        <button class="cyber-btn-outline" onclick="openMaintenanceModal()">+ REPORT ISSUE</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>LOG ID</th>
+                                    <th>TRAIN</th>
+                                    <th>ISSUE DESCRIPTION</th>
+                                    <th>STATUS</th>
+                                    <th>ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody id="maintenance-table-body">
+                                <tr><td colspan="5" class="text-center">Loading maintenance logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Entity 15: Promotion Offers Manager -->
+                <div class="glass-card data-table-card">
+                    <div class="card-header flex-between">
+                        <div>
+                            <div class="header-pill">ENTITY 15 // PROMOTION_OFFER</div>
+                            <h3>Promotion & Voucher Suite</h3>
+                        </div>
+                        <button class="cyber-btn-outline" onclick="openPromoModal()">+ ADD VOUCHER</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="cyber-table">
+                            <thead>
+                                <tr>
+                                    <th>PROMO CODE</th>
+                                    <th>DISCOUNT</th>
+                                    <th>VALID UNTIL</th>
+                                    <th>ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody id="promo-table-body">
+                                <tr><td colspan="4" class="text-center">Loading promo offers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full-Width Oracle 15-Entity Schema Map -->
+            <div class="glass-card schema-explorer-card" style="margin-bottom: 28px;">
+                <div class="card-header">
+                    <div class="header-pill">ORACLE RELATIONAL SCHEMA</div>
+                    <h3>15-Entity Database Architecture</h3>
+                </div>
+                <p class="section-desc">Strictly enforced Primary & Foreign Key relationships active in the Oracle instance:</p>
+                <div class="entity-badges-grid">
+                    <div class="entity-badge">Train <span class="badge-sub">Train_ID (PK)</span></div>
+                    <div class="entity-badge">Station <span class="badge-sub">Station_ID (PK)</span></div>
+                    <div class="entity-badge">Route_Schedule <span class="badge-sub">Schedule_ID (PK)</span></div>
+                    <div class="entity-badge">Coach_Class <span class="badge-sub">Class_ID (PK)</span></div>
+                    <div class="entity-badge">Seat <span class="badge-sub">Seat_No (PK)</span></div>
+                    <div class="entity-badge">Passenger <span class="badge-sub">Passenger_ID (PK)</span></div>
+                    <div class="entity-badge">Reservation <span class="badge-sub">PNR_No (PK)</span></div>
+                    <div class="entity-badge">Ticket <span class="badge-sub">Ticket_ID (PK)</span></div>
+                    <div class="entity-badge entity-highlight">Waitlist_Log <span class="badge-sub">Waitlist_ID (PK)</span></div>
+                    <div class="entity-badge">Department <span class="badge-sub">Dept_ID (PK)</span></div>
+                    <div class="entity-badge">Employee <span class="badge-sub">Emp_ID (PK)</span></div>
+                    <div class="entity-badge">Payment <span class="badge-sub">Payment_ID (PK)</span></div>
+                    <div class="entity-badge">Refund_Log <span class="badge-sub">Refund_ID (PK)</span></div>
+                    <div class="entity-badge">Train_Maintenance <span class="badge-sub">Log_ID (PK)</span></div>
+                    <div class="entity-badge">Promotion_Offer <span class="badge-sub">Promo_Code (PK)</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- INTERACTIVE MODAL: TICKET CONFIRMATION / WAITLIST STATUS DISPLAY      -->
+    <!-- ===================================================================== -->
+    <div id="ticket-modal" class="cyber-modal">
+        <div class="modal-backdrop" onclick="closeTicketModal()"></div>
+        <div class="modal-content glass-card">
+            <button class="modal-close-btn" onclick="closeTicketModal()">✕</button>
+
+            <div id="modal-badge-container">
+                <!-- Dynamically injected CONFIRMED vs WAITLISTED badge -->
+            </div>
+
+            <div class="ticket-slip">
+                <div class="slip-header">
+                    <div>
+                        <span class="slip-title">BOARDING PASS // TICKET</span>
+                        <h2 id="slip-train-name">Vande Bharat Express</h2>
+                    </div>
+                    <div class="slip-pnr-box">
+                        <span class="slip-pnr-label">PNR NUMBER</span>
+                        <span id="slip-pnr" class="slip-pnr-val">80000001</span>
+                    </div>
+                </div>
+
+                <div class="slip-body-grid">
+                    <div class="slip-item">
+                        <span class="slip-label">PASSENGER</span>
+                        <span id="slip-passenger" class="slip-data">Maya Chen</span>
+                    </div>
+                    <div class="slip-item">
+                        <span class="slip-label">SEAT ALLOCATION</span>
+                        <span id="slip-seat" class="slip-data seat-glow">Seat #1001 (CC-01)</span>
+                    </div>
+                    <div class="slip-item">
+                        <span class="slip-label">STATUS</span>
+                        <span id="slip-status" class="slip-data status-confirmed">CONFIRMED</span>
+                    </div>
+                    <div class="slip-item">
+                        <span class="slip-label">TOTAL FARE</span>
+                        <span id="slip-amount" class="slip-data">₹510.00</span>
+                    </div>
+                </div>
+
+                <div class="slip-barcode">
+                    <div class="barcode-lines"></div>
+                    <span class="barcode-text">TRANSACTION SIGNED VIA ORACLE PL/SQL</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="cyber-btn-primary" onclick="closeTicketModal()">DONE & RETURN TO PORTAL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL: REPORT MAINTENANCE ISSUE                                       -->
+    <!-- ===================================================================== -->
+    <div id="maintenance-modal" class="cyber-modal">
+        <div class="modal-backdrop" onclick="closeMaintenanceModal()"></div>
+        <div class="modal-content glass-card maint-modal-box">
+            <button class="modal-close-btn" onclick="closeMaintenanceModal()">✕</button>
+            <div class="card-header">
+                <div class="header-pill">MAINTENANCE DISPATCH</div>
+                <h3>Log Train Maintenance Issue</h3>
+            </div>
+            <form onsubmit="handleCreateMaintenance(event)">
+                <div class="form-grid">
+                    <div class="input-field">
+                        <label for="maint-train-select">AFFECTED TRAIN</label>
+                        <select id="maint-train-select" class="cyber-select">
+                            <option value="101">101 - Vande Bharat Express</option>
+                            <option value="102">102 - Rajdhani Express</option>
+                            <option value="103">103 - Tejas Hyperliner</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label for="maint-desc">ISSUE DESCRIPTION *</label>
+                        <textarea id="maint-desc" class="cyber-input" rows="3" placeholder="Describe mechanical, electrical or sensor anomaly..." required></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="cyber-btn-primary glow-btn" style="margin-top: 15px;">DISPATCH LOG</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL: ADD PROMOTION VOUCHER (ENTITY 15)                               -->
+    <!-- ===================================================================== -->
+    <div id="promo-modal" class="cyber-modal">
+        <div class="modal-backdrop" onclick="closePromoModal()"></div>
+        <div class="modal-content glass-card maint-modal-box">
+            <button class="modal-close-btn" onclick="closePromoModal()">✕</button>
+            <div class="card-header">
+                <div class="header-pill">PROMOTION ENGINE // ENTITY 15</div>
+                <h3>Create New Promotion Voucher</h3>
+            </div>
+            <form onsubmit="handleCreatePromo(event)">
+                <div class="form-grid">
+                    <div class="input-field">
+                        <label for="new-promo-code">PROMO CODE *</label>
+                        <input type="text" id="new-promo-code" placeholder="e.g. MEGA30" required uppercase>
+                    </div>
+                    <div class="input-field">
+                        <label for="new-promo-discount">DISCOUNT PERCENTAGE (0-100) *</label>
+                        <input type="number" id="new-promo-discount" min="1" max="100" placeholder="e.g. 30" required>
+                    </div>
+                    <div class="input-field-inline">
+                        <div class="input-field">
+                            <label for="new-promo-from">VALID FROM *</label>
+                            <input type="date" id="new-promo-from" value="2026-01-01" required>
+                        </div>
+                        <div class="input-field">
+                            <label for="new-promo-to">VALID TO *</label>
+                            <input type="date" id="new-promo-to" value="2026-12-31" required>
+                        </div>
+                    </div>
+                    <div class="input-field">
+                        <label for="new-promo-desc">DESCRIPTION</label>
+                        <input type="text" id="new-promo-desc" placeholder="e.g. Special Holiday 30% Off">
+                    </div>
+                </div>
+                <button type="submit" class="cyber-btn-primary glow-btn" style="margin-top: 15px;">ACTIVATE PROMO VOUCHER</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

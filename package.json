@@ -1,0 +1,31 @@
+{
+  "name": "dynamic-train-ticket-waitlist-system",
+  "version": "1.0.0",
+  "description": "University DBMS Project - Dynamic Train Ticket & Waitlist System with Oracle PL/SQL & Cyberpunk Glassmorphism UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'Vercel build complete'"
+  },
+  "keywords": [
+    "oracle",
+    "plsql",
+    "dbms",
+    "triggers",
+    "procedures",
+    "waitlist",
+    "express",
+    "nodejs",
+    "vercel"
+  ],
+  "author": "Database Administrator & UI/UX Lead Developer",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "optionalDependencies": {
+    "oracledb": "^6.5.0"
+  }
+}
